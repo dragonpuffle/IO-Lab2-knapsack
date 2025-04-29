@@ -1,5 +1,18 @@
 # algorithms classes in OOP STYLE!!
-from typing import List
+from functools import wraps
+from time import time
+from typing import List, Tuple
+
+
+def measure_time(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        start = time()
+        result = func(self, *args, **kwargs)
+        end = time()
+        self.execution_time = round(end - start, 6)
+        return result
+    return wrapper
 
 
 class KnapsackData:
@@ -15,6 +28,7 @@ class Algorithm:
         self.capacity = data.capacity
         self.weights = data.weights
         self.values = data.values
+        self.execution_time = None
 
     def get_total_value(self, result: List[int]) -> int:
         return sum(res * value for value, res in zip(self.values, result))
@@ -22,8 +36,12 @@ class Algorithm:
     def solve(self) -> List[int]:
         pass
 
+    @measure_time
     def __call__(self) -> List[int]:
         return self.solve()
+
+    def get_execution_time(self) -> float:
+        return self.execution_time
 
 
 class TwoApproxAlgorithm(Algorithm):
@@ -49,7 +67,7 @@ class TwoApproxAlgorithm(Algorithm):
             if self.weights[i] <= self.capacity:
                 return i, self.values[i]
 
-    def solve(self) -> tuple[List[int], int]:
+    def solve(self) -> Tuple[List[int], int]:
         greed_result = self.greed_search()
         max_greed_result, max_greed_value = self.max_greed_search()
         greed_value = self.get_total_value(greed_result)
@@ -68,15 +86,22 @@ class FourthAlg(Algorithm):
     pass
 
 
-def read_knapsack_data(capacity_file: str, weights_file: str, values_file: str,
-                       optimal_weights_file: str) -> KnapsackData:
-    with open(capacity_file, "r") as f:
+class FilesKnapsack:
+    def __init__(self, capacity_file: str, weights_file: str, values_file: str, optimal_weights_file: str):
+        self.capacity_file = capacity_file
+        self.weights_file = weights_file
+        self.values_file = values_file
+        self.optimal_weights_file = optimal_weights_file
+
+
+def read_knapsack_data(files: FilesKnapsack) -> KnapsackData:
+    with open(files.capacity_file, "r") as f:
         capacity = int(f.readline())
-    with open(weights_file, "r") as f:
+    with open(files.weights_file, "r") as f:
         weights = list(map(int, f.readlines()))
-    with open(values_file, "r") as f:
+    with open(files.values_file, "r") as f:
         values = list(map(int, f.readlines()))
-    with open(optimal_weights_file, "r") as f:
+    with open(files.optimal_weights_file, "r") as f:
         optimal_weights = list(map(int, f.readlines()))
 
     return KnapsackData(capacity, weights, values, optimal_weights)
@@ -87,8 +112,9 @@ if __name__ == "__main__":
     weights_file = 'benchmarks/p01/p01_w.txt'
     values_file = 'benchmarks/p01/p01_p.txt'
     optimal_weights_file = 'benchmarks/p01/p01_s.txt'
+    files = FilesKnapsack(capacity_file, weights_file, values_file, optimal_weights_file)
 
-    data = read_knapsack_data(capacity_file, weights_file, values_file, optimal_weights_file)
+    data = read_knapsack_data(files)
     print(TwoApproxAlgorithm(data)())
     print(data.optimal_weights)
 
