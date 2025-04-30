@@ -29,9 +29,13 @@ class Algorithm:
         self.weights = data.weights
         self.values = data.values
         self.execution_time = None
+        self.inter_solutions = 0
 
     def get_total_value(self, result: List[int]) -> int:
         return sum(res * value for value, res in zip(self.values, result))
+
+    def get_total_weight(self, result: List[int]) -> int:
+        return sum(result)
 
     def solve(self) -> List[int]:
         pass
@@ -55,6 +59,7 @@ class TwoApproxAlgorithm(Algorithm):
             if sum_weights + self.weights[item] <= self.capacity:
                 sum_weights += self.weights[item]
                 result[item] = 1
+                self.inter_solutions += 1
             if sum_weights == self.capacity:
                 break
 
@@ -65,13 +70,14 @@ class TwoApproxAlgorithm(Algorithm):
 
         for i, value in enumerate(sorted_values):
             if self.weights[i] <= self.capacity:
+                self.inter_solutions += 1
                 return i, self.values[i]
 
-    def solve(self) -> Tuple[List[int], int]:
+    def solve(self) -> List[int]:
         greed_result = self.greed_search()
         max_greed_result, max_greed_value = self.max_greed_search()
         greed_value = self.get_total_value(greed_result)
-        return (greed_result, greed_value) if greed_value > max_greed_value else (max_greed_result, max_greed_value)
+        return greed_result if greed_value > max_greed_value else max_greed_result
 
 
 class SecondAlg(Algorithm):
