@@ -13,14 +13,22 @@ class Benchmark:
 
     def run_all_benchmarks(self):
         results = []
+        results_diff = []
         bench_base = 'benchmarks/p0'
         for bench_id in range(1, 8):
             print('-' * 20)
             print(f'Benchmark #{bench_id}')
             bench_path = bench_base + str(bench_id) + '/p0' + str(bench_id) + '_'
-            self.run_one_benchmark(bench_path, results, bench_id)
+            self.run_one_benchmark(bench_path, results, results_diff, bench_id)
 
-    def run_one_benchmark(self, bench_path: str, results: list, bench_id: int):
+        data = pd.DataFrame(results).sort_values(by=['bench id', 'algorithm'], axis=0)
+        print(data)
+        data.to_csv('report.csv', index=False, encoding='utf-8')
+
+        data_diff = pd.DataFrame(results_diff).sort_values(by=['bench id', 'algorithm'], axis=0)
+        data_diff.to_csv('report_diff.csv', index=False, encoding='utf-8')
+
+    def run_one_benchmark(self, bench_path: str, results: list, results_diff: list, bench_id: int):
         files = FilesKnapsack(bench_path + 'c.txt', bench_path + 'w.txt', bench_path + 'p.txt', bench_path + 's.txt')
         data = read_knapsack_data(files)
         for algorithm_class in self.algorithm_classes:
@@ -41,9 +49,16 @@ class Benchmark:
             percentage_difference = round((actual_difference / expected_value) * 100, 4)
             print(f'{algorithm_class.__name__}: {percentage_difference}%')
 
-            results.append({'bench_id': bench_id, 'algorithm': algorithm_class.__name__, }) # доделать
+            results.append({'bench id': bench_id, 'algorithm': algorithm_class.__name__,
+                            'number of inter solutions': inter_solutions, 'alg weights': actual_weights,
+                            'alg total weight': actual_total_weight, 'alg profit': actual_value})
 
-
+            results_diff.append({'bench id': bench_id, 'algorithm': algorithm_class.__name__,
+                            'number of inter solutions': inter_solutions, 'alg weights': actual_weights,
+                            'expected weights': expected_weights, 'alg total weight': actual_total_weight,
+                            'expected total weight': expected_total_weight, 'alg profit': actual_value,
+                            'expected profit': expected_value, 'profit difference': actual_difference,
+                            'percentage profit difference': percentage_difference})
 
 
 
