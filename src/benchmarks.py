@@ -1,15 +1,14 @@
 # test algorithms on benchmarks
 from typing import Type, Tuple
 
-import matplotlib.pyplot as plt
 import pandas as pd
 
-from src.algorithms import TwoApproxAlgorithm, read_knapsack_data, Algorithm, FilesKnapsack
+from src.algorithms import TwoApproxAlgorithm, read_knapsack_data, Algorithm, FilesKnapsack, DPWeights
 
 
 class Benchmark:
-    def __init__(self):
-        self.algorithm_classes: Tuple[Type[Algorithm], ...] = (TwoApproxAlgorithm,)
+    def __init__(self, algorithm_classes: Tuple[Type[Algorithm], ...]):
+        self.algorithm_classes = algorithm_classes
 
     def run_all_benchmarks(self):
         results = []
@@ -49,13 +48,14 @@ class Benchmark:
             percentage_difference = round((actual_difference / expected_value) * 100, 4)
             print(f'{algorithm_class.__name__}: {percentage_difference}%')
 
-            results.append({'bench id': bench_id, 'algorithm': algorithm_class.__name__,
+            results.append({'bench id': bench_id, 'algorithm': algorithm_class.__name__, 'time': exec_time,
                             'number of inter solutions': inter_solutions, 'alg weights': actual_weights,
                             'alg total weight': actual_total_weight, 'alg profit': actual_value})
 
-            results_diff.append({'bench id': bench_id, 'algorithm': algorithm_class.__name__,
+            results_diff.append({'bench id': bench_id, 'algorithm': algorithm_class.__name__, 'time': exec_time,
                             'number of inter solutions': inter_solutions, 'alg weights': actual_weights,
-                            'expected weights': expected_weights, 'alg total weight': actual_total_weight,
+                            'expected weights': expected_weights, 'capacity': data.capacity,
+                            'alg total weight': actual_total_weight,
                             'expected total weight': expected_total_weight, 'alg profit': actual_value,
                             'expected profit': expected_value, 'profit difference': actual_difference,
                             'percentage profit difference': percentage_difference})
@@ -63,4 +63,5 @@ class Benchmark:
 
 
 if __name__ == '__main__':
-    Benchmark().run_all_benchmarks()
+    algs = (TwoApproxAlgorithm, DPWeights)
+    Benchmark(algs).run_all_benchmarks()

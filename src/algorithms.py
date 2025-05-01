@@ -1,7 +1,9 @@
 # algorithms classes in OOP STYLE!!
 from functools import wraps
 from time import time
-from typing import List, Tuple
+from typing import List
+
+import numpy as np
 
 
 def measure_time(func):
@@ -35,7 +37,7 @@ class Algorithm:
         return sum(res * value for value, res in zip(self.values, result))
 
     def get_total_weight(self, result: List[int]) -> int:
-        return sum(result)
+        return sum(res * weight for weight, res in zip(self.weights, result))
 
     def solve(self) -> List[int]:
         pass
@@ -69,19 +71,57 @@ class TwoApproxAlgorithm(Algorithm):
         sorted_values = sorted(self.values, reverse=True)
 
         for i, value in enumerate(sorted_values):
+            self.inter_solutions += 1
             if self.weights[i] <= self.capacity:
-                self.inter_solutions += 1
                 return i, self.values[i]
 
     def solve(self) -> List[int]:
+        self.inter_solutions = 0
         greed_result = self.greed_search()
         max_greed_result, max_greed_value = self.max_greed_search()
         greed_value = self.get_total_value(greed_result)
         return greed_result if greed_value > max_greed_value else max_greed_result
 
 
-class SecondAlg(Algorithm):
-    pass
+class DPWeights(Algorithm):
+    def dp_table(self) -> np.ndarray:
+        n = len(self.weights)
+        W = self.capacity
+        table = np.zeros((n + 1, W + 1), dtype=object)
+
+        for i in range(n + 1):
+            for w in range(W + 1):
+                if i == 0 or w == 0:
+                    table[i][w] = (0, 0)
+                elif self.weights[i - 1] > w:
+                    table[i][w] = (table[i - 1][w][0], w)
+                else:
+                    w_ind = w - self.weights[i - 1]
+                    take = self.values[i-1] + table[i - 1][w_ind][0]
+                    no_take = table[i - 1][w][0]
+                    if take > no_take:
+                        table[i][w] = (take, w_ind)
+                    else:
+                        table[i][w] = (no_take, w)
+                    self.inter_solutions += 1
+        return table
+
+    def get_weight_by_table(self, table: np.ndarray) -> List[int]:
+        result = [0] * len(self.weights)
+
+        w = self.capacity
+        for i in range(len(self.weights), 0, -1):
+            _, pre_w = table[i][w]
+            if pre_w != w:
+                result[i - 1] = 1
+            w = pre_w
+        return result
+
+    def solve(self) -> List[int]:
+        self.inter_solutions = 0
+        table = self.dp_table()
+        result = self.get_weight_by_table(table)
+        return result
 
 
 class ThirdAlg(Algorithm):
@@ -121,7 +161,7 @@ if __name__ == "__main__":
     files = FilesKnapsack(capacity_file, weights_file, values_file, optimal_weights_file)
 
     data = read_knapsack_data(files)
-    print(TwoApproxAlgorithm(data)())
+    print(DPWeights(data)())
     print(data.optimal_weights)
 
 
