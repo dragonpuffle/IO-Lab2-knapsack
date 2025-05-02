@@ -3,7 +3,7 @@ from typing import Type, Tuple
 
 import pandas as pd
 
-from src.algorithms import TwoApproxAlgorithm, read_knapsack_data, Algorithm, FilesKnapsack, DPWeights
+from src.algorithms import TwoApproxAlgorithm, read_knapsack_data, Algorithm, FilesKnapsack, DPWeights, BranchAndBound, PTAS
 
 
 class Benchmark:
@@ -17,25 +17,33 @@ class Benchmark:
         for bench_id in range(1, 8):
             print('-' * 20)
             print(f'Benchmark #{bench_id}')
-            bench_path = bench_base + str(bench_id) + '/p0' + str(bench_id) + '_'
+            bench_path = '../'+bench_base + str(bench_id) + '/p0' + str(bench_id) + '_'
             self.run_one_benchmark(bench_path, results, results_diff, bench_id)
 
         data = pd.DataFrame(results).sort_values(by=['bench id', 'algorithm'], axis=0)
         print(data)
-        data.to_csv('report.csv', index=False, encoding='utf-8')
+        data.to_csv('../report.csv', index=False, encoding='utf-8', float_format='%.15e')
 
         data_diff = pd.DataFrame(results_diff).sort_values(by=['bench id', 'algorithm'], axis=0)
-        data_diff.to_csv('report_diff.csv', index=False, encoding='utf-8')
+        data_diff.to_csv('../report_diff.csv', index=False, encoding='utf-8', float_format='%.15e')
 
     def run_one_benchmark(self, bench_path: str, results: list, results_diff: list, bench_id: int):
         files = FilesKnapsack(bench_path + 'c.txt', bench_path + 'w.txt', bench_path + 'p.txt', bench_path + 's.txt')
         data = read_knapsack_data(files)
         for algorithm_class in self.algorithm_classes:
+            total_time = 0
             algorithm = algorithm_class(data)
             result = algorithm()
+            for _ in range(1000):
+                algorithm = algorithm_class(data)
+                result = algorithm()
+                total_time += algorithm.execution_time
+
+            # Calculate average time
+            exec_time = total_time / 100
 
             exec_time = algorithm.execution_time
-            inter_solutions =  algorithm.inter_solutions
+            inter_solutions = algorithm.inter_solutions
             expected_weights = data.optimal_weights
             actual_weights = result
 
@@ -63,5 +71,5 @@ class Benchmark:
 
 
 if __name__ == '__main__':
-    algs = (TwoApproxAlgorithm, DPWeights)
+    algs = (TwoApproxAlgorithm, DPWeights, BranchAndBound, PTAS)
     Benchmark(algs).run_all_benchmarks()
