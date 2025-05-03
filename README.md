@@ -4,7 +4,7 @@ Algorithms for solving Knapsack 0-1 problem
 
 # **Отчет:**
 
-Мы реализовали 4 разных алгоритма для поиска подстроки в тексте:
+Мы реализовали 4 разных алгоритма для решения knapsack 0-1 problem:
 
 - 2-approx 
 
