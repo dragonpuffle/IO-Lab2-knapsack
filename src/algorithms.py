@@ -1,10 +1,9 @@
-# algorithms classes in OOP STYLE!!
 from functools import wraps
-from time import time
-from typing import Tuple, List, Optional
-import networkx as nx
-import matplotlib.pyplot as plt
 from itertools import combinations
+import os
+from time import time
+from typing import List
+
 import numpy as np
 
 
@@ -16,6 +15,7 @@ def measure_time(func):
         end = time()
         self.execution_time = round(end - start, 6)
         return result
+
     return wrapper
 
 
@@ -46,6 +46,8 @@ class Algorithm:
 
     @measure_time
     def __call__(self) -> List[int]:
+        self.execution_time = 0
+        self.inter_solutions = 0
         return self.solve()
 
     def get_execution_time(self) -> float:
@@ -99,7 +101,7 @@ class DPWeights(Algorithm):
                     table[i][w] = (table[i - 1][w][0], w)
                 else:
                     w_ind = w - self.weights[i - 1]
-                    take = self.values[i-1] + table[i - 1][w_ind][0]
+                    take = self.values[i - 1] + table[i - 1][w_ind][0]
                     no_take = table[i - 1][w][0]
                     if take > no_take:
                         table[i][w] = (take, w_ind)
@@ -131,23 +133,19 @@ class BranchAndBound(Algorithm):
         self.inter_solutions = 0
         n = len(self.weights)
 
-        # Sort items by value/weight ratio in descending order for better bounding
         items = sorted([(self.values[i], self.weights[i], i)
                         for i in range(n)],
                        key=lambda x: x[0] / x[1], reverse=True)
 
-        # Initialize variables
         best_value = 0
         best_solution = [0] * n
         current_solution = [0] * n
 
         def bound(i, current_weight, current_value):
-            """Calculate upper bound of value in subtree"""
             remaining_weight = self.capacity - current_weight
             bound_value = current_value
             j = i
 
-            # Greedily add items until capacity is reached
             while j < n and remaining_weight > 0:
                 if items[j][1] <= remaining_weight:
                     bound_value += items[j][0]
@@ -169,21 +167,17 @@ class BranchAndBound(Algorithm):
             if i == n:
                 return
 
-            # Check if we should explore this branch
             if bound(i, current_weight, current_value) > best_value:
-                # Explore taking the item
                 if current_weight + items[i][1] <= self.capacity:
                     original_idx = items[i][2]
                     current_solution[original_idx] = 1
                     backtrack(i + 1, current_weight + items[i][1], current_value + items[i][0])
                     current_solution[original_idx] = 0
 
-                # Explore not taking the item
                 backtrack(i + 1, current_weight, current_value)
 
         backtrack(0, 0, 0)
 
-        # Convert best_solution to original item order
         result = [0] * n
         for i in range(n):
             original_idx = items[i][2]
@@ -201,32 +195,25 @@ class PTAS(Algorithm):
         if n == 0:
             return []
 
-        # Step 1: Sort items by value/weight ratio (descending)
         items = sorted([(self.values[i], self.weights[i], i)
                         for i in range(n)],
                        key=lambda x: x[0] / x[1], reverse=True)
 
-        # Step 2: Determine the subset size (m = min(⌈1/ε⌉, n))
         m = min(int(np.ceil(1 / epsilon)), n)
 
         best_value = 0
         best_solution = [0] * n
 
-        # Step 3: Try all possible subsets of size ≤ m
-        from itertools import combinations
         for k in range(0, m + 1):
             for subset in combinations(items, k):
                 self.inter_solutions += 1
 
-                # Calculate total weight and value of the subset
                 subset_weight = sum(item[1] for item in subset)
                 subset_value = sum(item[0] for item in subset)
 
-                # Skip if subset exceeds capacity
                 if subset_weight > self.capacity:
                     continue
 
-                # Initialize solution with current subset
                 current_solution = [0] * n
                 for item in subset:
                     current_solution[item[2]] = 1
@@ -234,14 +221,12 @@ class PTAS(Algorithm):
                 remaining_capacity = self.capacity - subset_weight
                 current_value = subset_value
 
-                # Greedily add remaining items (GS procedure)
                 for item in items:
                     if item not in subset and item[1] <= remaining_capacity:
                         current_solution[item[2]] = 1
                         current_value += item[0]
                         remaining_capacity -= item[1]
 
-                # Update best solution if improved
                 if current_value > best_value:
                     best_value = current_value
                     best_solution = current_solution.copy()
@@ -271,16 +256,15 @@ def read_knapsack_data(files: FilesKnapsack) -> KnapsackData:
 
 
 if __name__ == "__main__":
-    capacity_file = '../benchmarks/p01/p01_c.txt'
-    weights_file = '../benchmarks/p01/p01_w.txt'
-    values_file = '../benchmarks/p01/p01_p.txt'
-    optimal_weights_file = '../benchmarks/p01/p01_s.txt'
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    bench_path = os.path.join(project_root, 'benchmarks', 'p01')
+
+    capacity_file = os.path.join(bench_path, 'p01_c.txt')
+    weights_file = os.path.join(bench_path, 'p01_w.txt')
+    values_file = os.path.join(bench_path, 'p01_p.txt')
+    optimal_weights_file = os.path.join(bench_path, 'p01_s.txt')
     files = FilesKnapsack(capacity_file, weights_file, values_file, optimal_weights_file)
 
     data = read_knapsack_data(files)
     print(PTAS(data)())
     print(data.optimal_weights)
-
-
-
-
